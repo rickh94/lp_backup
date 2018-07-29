@@ -1,0 +1,55 @@
+import os
+import json
+import re
+from fs.copy import copy_fs, copy_file
+from fs.errors import  DirectoryExists
+
+
+def write_out_backup(backing_store_fs, data, outfile, prefix=''):
+    """
+    Write the backup data to its final location. A backing store is required
+    and either a filepath to the packaged backup or the tmp filesystem is required.
+
+    :param required backing_store_fs: a pyfilesystem2 object to be the final storage
+            location of the backup. (should be `OSFS`, `S3FS`, `FTPFS`, etc.)
+            Can be a single object or list of filesystem objects for copying to
+            multiple backing stores.
+
+    :param required data: the byte stream that needs to be written to the file
+    on the backing store fs.
+
+    :param requried outfile: the name of the file to write out to.
+
+    :param prefix: a parent directory for the files to be saved under.
+            This is can be a good place to encode some information about the
+            backup. A slash will be appended to the prefix to create
+            a directory or pseudo-directory structure.
+    """
+    if prefix and not prefix[-1] == '/':
+        prefix = prefix + '/'
+    if not isinstance(backing_store_fs, list):
+        backing_store_fs = [backing_store_fs]
+    for backing_fs in backing_store_fs:
+        print(backing_fs)
+        tmp = tempfs.TempFS()
+        with tmp.open("lp-tmp-backup", 'wb') as tmp_file:
+            tmp_file.write(data)
+        try:
+            backing_fs.makedirs(prefix)
+        except DirectoryExists:
+            pass
+        print(prefix, outfile)
+        copy_file(tmp, "lp-tmp-backup", backing_fs, str(prefix + outfile))
+        tmp.clean()
+
+
+def read_backup(backing_store_fs, infile, prefix=""):
+    tmp = tempfs.TempFS()
+    data = ""
+    if isinstance(backing_store_fs, list):
+        backing_store_fs = backing_store_fs[0]
+    copy_file(backing_store_fs, prefix + infile, tmp, infile)
+    with tmp.open(infile, 'rb') as retrieved_file:
+        data = retrieved_file.read()
+    tmp.clean()
+    return data

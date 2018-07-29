@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+sultan = "*"
+cryptography = "*"
+"ruamel.yaml" = "*"
+fs = "*"
+"fs-s3fs" = "*"
+
+[dev-packages]
+ptpython = "*"
+
+[requires]
+python_version = "3.6"
