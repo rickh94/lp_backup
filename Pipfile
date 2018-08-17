@@ -9,6 +9,7 @@ cryptography = "*"
 "ruamel.yaml" = "*"
 fs = "*"
 "fs-s3fs" = "*"
+lp-backup = {editable = true, path = "."}
 
 [dev-packages]
 ptpython = "*"

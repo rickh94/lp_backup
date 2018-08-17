@@ -13,8 +13,8 @@ from fs.errors import CreateFailed
 from fs_s3fs import S3FS
 import sultan
 
-import file_io
-import exceptions
+from lp_backup import file_io
+from lp_backup import exceptions
 # from . import __docurl__
 
 
@@ -32,12 +32,12 @@ class Runner(object):
     """
     def __init__(self, path, *, filesystem=None):
         self.yaml = YAML()
-        self.config_path = path
+        self.config_path = str(path)
         if not filesystem:
             self.filesystem = fs.open_fs('/')
         else:
             self.filesystem = filesystem
-        with self.filesystem.open(str(path), 'r') as configfile:
+        with self.filesystem.open(self.config_path, 'r') as configfile:
             self.config = self.yaml.load(configfile)
         self.sultan = Sultan()
         self.logged_in = False
@@ -48,8 +48,6 @@ class Runner(object):
         if self.config['Trust']:
             trust = "--trust"
         out = self.sultan.lpass("login", self.config["Email"], trust).run()
-        # print(out.stdout)
-        # print(out.stderr)
         if out.stderr:
             raise exceptions.LoginFailed(out.stderr)
         if "Success:" in out.stdout[0]:
@@ -128,7 +126,6 @@ class Runner(object):
             restored_data = self.fernet.decrypt(restored_data)
         with self.filesystem.open(str(new_file), 'w') as the_new_file:
             the_new_file.write(restored_data.decode('utf-8'))
-
 
     def _configure_backing_store(self):
         try:

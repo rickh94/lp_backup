@@ -1,0 +1,11 @@
+Email: johnsmith@example.com
+Trust: false
+Encryption Key: !!binary |
+  SS1WQ2ZEUWhfcmQ4WjVpZ2JKV2FlV1o2ZzZJS2NhdGNoRDFpVExDSDBFMD0=
+Compression: false
+Backing Store:
+  Type: S3
+  Bucket: testbackupspace
+  Endpoint URL: https://nyc3.digitaloceanspaces.com
+  Key ID: $DOKEY
+  Secret Key: $DOSECRET
