@@ -1,8 +1,9 @@
 import datetime
 import os
 import lzma
+import subprocess
 
-from sultan.api import Sultan
+# from sultan.api import Sultan
 from ruamel.yaml import YAML
 from cryptography.fernet import Fernet
 import fs
@@ -11,7 +12,7 @@ from fs import tarfs
 from fs import zipfs
 from fs.errors import CreateFailed
 from fs_s3fs import S3FS
-import sultan
+# import sultan
 
 from lp_backup import file_io
 from lp_backup import exceptions
@@ -39,7 +40,7 @@ class Runner(object):
             self.filesystem = filesystem
         with self.filesystem.open(self.config_path, 'r') as configfile:
             self.config = self.yaml.load(configfile)
-        self.sultan = Sultan()
+        # self.sultan = Sultan()
         self.logged_in = False
         self.configure_encryption()
 
@@ -47,12 +48,15 @@ class Runner(object):
         trust = ""
         if self.config['Trust']:
             trust = "--trust"
-        out = self.sultan.lpass("login", self.config["Email"], trust).run()
+        out = subprocess.run(["lpass", "login", self.config["Email"], trust], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         if out.stderr:
+            print(out.stderr)
             raise exceptions.LoginFailed(out.stderr)
         if "Success:" in out.stdout[0]:
             self.logged_in = True
         else:
+            print(out.stderr + " " + out.stdout)
             raise exceptions.LoginFailed(out.stderr + " " + out.stdout)
 
     def configure_encryption(self):
@@ -81,7 +85,8 @@ class Runner(object):
         # if sync.stderr:
         #     raise exceptions.BackupFailed(sync.stderr)
         # print("synced")
-        run_backup = self.sultan.lpass("export").run()
+        # run_backup = self.sultan.lpass("export").run()
+        run_backup = subprocess.run(["lpass", "export"], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         filesuffix = '.csv'
         if run_backup.stderr:
             raise exceptions.BackupFailed(run_backup.stderr)

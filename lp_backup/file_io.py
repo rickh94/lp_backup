@@ -3,6 +3,7 @@ import json
 import re
 from fs.copy import copy_fs, copy_file
 from fs.errors import  DirectoryExists
+from fs import tempfs
 
 
 def write_out_backup(backing_store_fs, data, outfile, prefix=''):

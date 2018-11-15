@@ -2,12 +2,13 @@ import os
 from cryptography.fernet import Fernet
 from pathlib import Path
 from unittest import mock
+import subprocess
 
-from fs import open_fs
-import pytest
-
-from lp_backup import runner
-from lp_backup import exceptions
+# from fs import open_fs
+# import pytest
+#
+# from lp_backup import runner
+# from lp_backup import exceptions
 
 HERE = os.path.dirname(__file__)
 DATA = Path(HERE, 'testdata')
@@ -35,7 +36,7 @@ def test_config_file_read(test_runner_one, test_runner_two, test_runner_three):
     # test runner three
     assert test_runner_three.config["Email"] == "johnsmith@example.com"
     assert test_runner_three.config["Trust"] is False
-    assert test_runner_three.config["Encryption Key"] == b"d0RlMDVhd29jek5hUmpSNzJxXy1Ba01aZzBYMy16TElQbm9Qc2JyUXp5QT0="
+    # assert test_runner_three.config["Encryption Key"] ==
     # assert test_runner_three.fernet == Fernet("d0RlMDVhd29jek5hUmpSNzJxXy1Ba01aZzBYMy16TElQbm9Qc2JyUXp5QT0=")
     assert test_runner_three.config["Compression"] is False
     assert test_runner_three.config["Backing Store"]["Type"] == "S3"
@@ -47,80 +48,35 @@ def test_config_file_read(test_runner_one, test_runner_two, test_runner_three):
     assert test_runner_three.config["Backing Store"].get("Date", False) is False
 
 
-# @pytest.fixture
-# def testrunner(testconf_yml, monkeypatch, lots_of_fields_raw,
-#                 filedata):
-#     monkeypatch.setattr(Airtable, 'validate_session', rettrue)
-#     monkeypatch.setenv('AIRTABLE_API_KEY', 'key123456')
-#
-#     def ret_data(*args):
-#         return lots_of_fields_raw
-#
-#     def get_attach_patched(url):
-#         class FakeDownload():
-#             def __init__(self, data):
-#                 self.content = data.encode('utf-8')
-#         return FakeDownload(filedata[url])
-#
-#     monkeypatch.setattr(Airtable, 'get_all', ret_data)
-#     monkeypatch.setattr(requests, 'get', get_attach_patched)
-#     return runner.Runner(path=testconf_yml)
-#
-# @pytest.fixture
-# def bad_testrunner(badconf_yml):
-#     return runner.Runner(path=badconf_yml)
-#
-#
-# @pytest.fixture
-# def table_names():
-#     return ['giant_table', 'Contacts', 'Random Data', 'Lots of fields']
-#
-#
-# def test_config(testrunner):
-#     assert testrunner.config['Base Name'] == 'TestDB'
-#     assert testrunner.config['Airtable Base Key'] == 'app123456'
-#     assert testrunner.config['Airtable API Key'] is None
-#     assert testrunner.config['Store As']['Type'] == 'tar'
-#     assert testrunner.config['Store As']['Compression'] == 'xz'
-#     assert testrunner.config['Backing Store']['Type'] == 'S3'
-#     assert testrunner.config['Backing Store']['Bucket'] == 'mybackupbucket'
-#     assert testrunner.config['Backing Store']['Prefix'] == 'backupfolder/'
-#     assert testrunner.config['Backing Store']['Date'] is True
-#     assert testrunner.config['Tables'][0]['Name'] == 'giant_table'
-#     assert testrunner.config['Tables'][1]['Fields']['Last Name'] ==\
-#         'Single line text'
-#     assert testrunner.config['Attachment Store']['Type'] == 'S3'
-#     assert testrunner.config['Attachment Store']['Bucket'] ==\
-#         'testairtableattachments'
-#     assert testrunner.config['Attachment Store']['Key ID'][0] == '$'
-#
-#
-# def test_create_backup_tables(testrunner, table_names, bad_testrunner):
-#     for table in testrunner._create_backup_tables():
-#         assert table.base_key == 'app123456'
-#         assert table.api_key is None
-#         assert table.compression is True
-#         assert table.discard_attach is False
-#         assert isinstance(table.fields, dict)
-#         assert table.table_name in table_names
-#         # remove the table because there should be only one of each
-#         table_names.remove(table.table_name)
-#     assert table_names == [], "All tables should have been removed"
-#     with pytest.raises(ConfigurationError):
-#         list(bad_testrunner._create_backup_tables())
-#
-#
-# def rettrue(*args):
-#     return True
-#
-#
-# def test_save_tables(testrunner, table_names):
-#     testrunner._save_tables()
-#     for table in table_names:
-#         name = _normalize(table)
-#         assert f'{name}.json' in testrunner.tmp.listdir('/')
-#
-#
+def test_configure_encryption(test_runner_one, test_runner_two, test_runner_three):
+    """Tests the correct configuration of encryption for various settings."""
+    assert isinstance(test_runner_one.fernet, Fernet)
+    assert test_runner_two.fernet is None
+    assert isinstance(test_runner_three.fernet, Fernet)
+
+
+def test_login(test_runner_one, test_runner_two, test_runner_three):
+    # assert test_runner_one.sultan.lpass.assert_called_with("login", "johnsmith@example.com",
+    #                                                             "--trust")
+    mock_run = mock.MagicMock()
+    mock_return = mock.MagicMock()
+    mock_return.stderr = ""
+    mock_return.stdout = ["Success: "]
+    mock_run.return_value = mock_return
+    with mock.patch("subprocess.run", mock_run):
+        test_runner_one.login()
+        mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", "--trust"], stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+        mock_run.reset_mock()
+        test_runner_two.login()
+        mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", "--trust"],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        mock_run.reset_mock()
+        test_runner_three.login()
+        mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", ""],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
 # def test_configure_backing_store(testrunner, monkeypatch, bad_testrunner):
 #     testfs1 = testrunner._configure_backing_store()
 #     assert testfs1._bucket_name == 'mybackupbucket'
