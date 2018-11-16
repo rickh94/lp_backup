@@ -7,11 +7,12 @@ python:
 before_install:
   - pip install pipenv
   - pip install codecov
+  - pipenv install --dev
 #  - pip install pytest-cov
 #  - pip install pytest
 #  - pip install -r requirements.txt
 install:
-  - pipenv install --dev .
+  - pip install .
 
 script: pipenv run pytest
 
