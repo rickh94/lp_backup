@@ -5,11 +5,13 @@ python:
   - "3.7-dev"
 
 before_install:
-  - pip install pipenv
+#  - pip install pipenv
   - pip install codecov
-#  - pip install pytest-cov
+  - pip install pytest-cov
+  - pip install pytest
+  - pip install -r requirements.txt
 install:
-  - pipenv install
+  - pip install .
 
 script: pipenv run pytest
 
