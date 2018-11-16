@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sultan = "*"
 cryptography = "*"
 "ruamel.yaml" = "*"
 fs = "*"
@@ -16,6 +15,7 @@ freezegun = "*"
 ptpython = "*"
 pyperclip = "*"
 pytest-mock = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.6"

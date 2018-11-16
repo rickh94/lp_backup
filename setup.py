@@ -2,7 +2,7 @@ from os import path
 from setuptools import setup, find_packages
 
 HERE = path.abspath(path.dirname(__file__))
-VERS = '0.1a1'
+VERS = '0.1a2'
 DESC = 'Script to create local backups from lastpass'
 
 with open(path.join(HERE, 'README.md'), 'r') as f:
@@ -25,7 +25,7 @@ setup(
     packages=find_packages(),
 
     install_requires=[
-        'sultan',
+        # 'sultan',
         'boto3',
         'fs',
         'fs-s3fs',
