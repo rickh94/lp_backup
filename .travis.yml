@@ -1,0 +1,17 @@
+language: python
+cache: pip
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+
+before_install:
+  - pip install pipenv
+install:
+  - pipenv install
+
+script: pipenv run pytest
+
+after_success:
+  - codecov
