@@ -11,7 +11,7 @@ before_install:
 #  - pip install pytest
 #  - pip install -r requirements.txt
 install:
-  - pipenv install --dev
+  - pipenv install --dev .
 
 script: pipenv run pytest
 
