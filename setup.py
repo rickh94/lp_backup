@@ -29,8 +29,13 @@ setup(
         'boto3',
         'fs==2.1.2',
         'fs-s3fs',
+        'ruamel.yaml',
+        'cryptography'
     ],
     tests_require=['pytest', 'pytest-cov'],
     # setup_requires=['pytest-runner'],
+    dependency_links=[
+        "http://github.com/PyFilesystem/webdavfs#egg=fs.webdavfs"
+    ]
 
 )
