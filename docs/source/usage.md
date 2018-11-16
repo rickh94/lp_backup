@@ -5,18 +5,25 @@
 
 Create a simple python script, for instance `backup.py` with the contents:
 
-```
-  from airtable_local_backup import Runner
+```python
+  from lp_backup import Runner
 
   run = Runner(path='/path/to/config/file.yaml')
-  run.backup()
+  backup_file_name = run.backup()
 ```
 
-Configuration is discussed more below and you can download an [example configuration
-    file](https://github.com/rickh94/airtable_local_backup/blob/master/docs/sample-config.yaml).
 
 ## Restoring from Backups
 
-Not Implemented yet
+This will create a plain text csv file that you can import into lastpass or another
+password manager.
 
+```python
+from lp_backup import Runner
+run = Runner(path='/path/to/config/file.yml')
+run.restore(backup_file_name, output_file_name)
+```
+
+It is crucial that you use the exact configuration file used to create the initial
+backup or your data might be garbled.
 
