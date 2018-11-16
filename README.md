@@ -1,4 +1,5 @@
 # Lastpass Backup
+[![Build Status](https://travis-ci.org/rickh94/lp_backup.svg?branch=master)](https://travis-ci.org/rickh94/lp_backup)
 
 Easily backup data from lastpass to your own storage.
 
