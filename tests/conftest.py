@@ -28,14 +28,29 @@ def tmp_config_file_two(tmpdir):
 
 @pytest.fixture
 def tmp_config_file_three(tmpdir):
-    test_config_file = Path(DATA, "testconfig-4.yml")
+    test_config_file = Path(DATA, "testconfig-3.yml")
     shutil.copy2(test_config_file, tmpdir)
-    temp_config_file = Path(tmpdir, "testconfig-4.yml")
+    temp_config_file = Path(tmpdir, "testconfig-3.yml")
     return temp_config_file
 
 
 @pytest.fixture
-def test_runner_one(tmp_config_file_one, monkeypatch, mocker):
+def mock_fernet():
+    mock_fern = mock.MagicMock()
+    mock_fern.encrypt = mock.MagicMock()
+    mock_fern.encrypt.return_value = "fjioepsaoifjdpaihtpesiatpioafjs"
+    return mock_fern
+
+
+@pytest.fixture
+def mock_lzma():
+    mock_lz = mock.MagicMock()
+    mock_lz.compress = mock.MagicMock()
+    return mock_lz
+
+
+@pytest.fixture
+def test_runner_one(tmp_config_file_one, monkeypatch, mock_fernet):
     new_runner = Runner(tmp_config_file_one)
     monkeypatch.setattr(new_runner, 'logged_in', True)
     return new_runner

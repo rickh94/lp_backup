@@ -1,7 +1,7 @@
 Email: johnsmith@example.com
 Trust: false
 Encryption Key: !!binary |
-  d0RlMDVhd29jek5hUmpSNzJxXy1Ba01aZzBYMy16TElQbm9Qc2JyUXp5QT0=
+  SS1WQ2ZEUWhfcmQ4WjVpZ2JKV2FlV1o2ZzZJS2NhdGNoRDFpVExDSDBFMD0=
 Compression: false
 Backing Store:
   Type: S3

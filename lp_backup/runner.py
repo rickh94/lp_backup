@@ -7,9 +7,9 @@ import subprocess
 from ruamel.yaml import YAML
 from cryptography.fernet import Fernet
 import fs
-from fs import tempfs
-from fs import tarfs
-from fs import zipfs
+# from fs import tempfs
+# from fs import tarfs
+# from fs import zipfs
 from fs.errors import CreateFailed
 from fs_s3fs import S3FS
 # import sultan
@@ -87,7 +87,7 @@ class Runner(object):
         # print("synced")
         # run_backup = self.sultan.lpass("export").run()
         run_backup = subprocess.run(["lpass", "export"], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        filesuffix = '.csv'
+        file_suffix = '.csv'
         if run_backup.stderr:
             raise exceptions.BackupFailed(run_backup.stderr)
         # print("backup downloaded")
@@ -95,21 +95,23 @@ class Runner(object):
         backup_data = '\n'.join(backup_lines)
         if self.fernet:
             backup_data = self.fernet.encrypt(backup_data.encode('utf-8'))
-            filesuffix += ".encrypted"
+            file_suffix += ".encrypted"
         if self.config.get("Compression", False):
             backup_data = lzma.compress(backup_data)
-            filesuffix += ".xz"
+            file_suffix += ".xz"
         # with open("/tmp/testbackup.csv.encrypted.xz", 'wb') as test_file:
         #     test_file.write(backup_data)
         try:
             outfs = self._configure_backing_store()
             prefix = self.config['Backing Store'].get('Prefix', '')
             if self.config['Backing Store'].get('Date', False):
-                date = datetime.datetime.today().isoformat()
+                date = datetime.datetime.today().isoformat() + "-"
+            else:
+                date = ""
         except KeyError as err:
             _config_error(err)
-        outfile = (date + "-" + self.config["Email"] +
-                "-lastpass-backup" + filesuffix)
+        outfile = (date + self.config["Email"] +
+                "-lastpass-backup" + file_suffix)
         file_io.write_out_backup(
             backing_store_fs=outfs,
             outfile=outfile,

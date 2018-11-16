@@ -1,14 +1,18 @@
+import datetime
 import os
 from cryptography.fernet import Fernet
 from pathlib import Path
 from unittest import mock
 import subprocess
+from freezegun import freeze_time
 
-# from fs import open_fs
-# import pytest
+#from fs import open_fs
+from fs import tempfs
+import pytest
 #
 # from lp_backup import runner
 # from lp_backup import exceptions
+from lp_backup import file_io
 
 HERE = os.path.dirname(__file__)
 DATA = Path(HERE, 'testdata')
@@ -55,14 +59,29 @@ def test_configure_encryption(test_runner_one, test_runner_two, test_runner_thre
     assert isinstance(test_runner_three.fernet, Fernet)
 
 
-def test_login(test_runner_one, test_runner_two, test_runner_three):
-    # assert test_runner_one.sultan.lpass.assert_called_with("login", "johnsmith@example.com",
-    #                                                             "--trust")
-    mock_run = mock.MagicMock()
+@pytest.fixture
+def mock_run():
+    run = mock.MagicMock()
     mock_return = mock.MagicMock()
     mock_return.stderr = ""
     mock_return.stdout = ["Success: "]
-    mock_run.return_value = mock_return
+    run.return_value = mock_return
+    return run
+
+
+@pytest.fixture
+def mock_run_backup():
+    run = mock.MagicMock()
+    mock_return = mock.MagicMock()
+    mock_return.stderr = ""
+    mock_return.stdout = ["some backup data", "more data", "yet more data"]
+    run.return_value = mock_return
+    return run
+
+
+def test_login(test_runner_one, test_runner_two, test_runner_three, mock_run):
+    # assert test_runner_one.sultan.lpass.assert_called_with("login", "johnsmith@example.com",
+    #                                                             "--trust")
     with mock.patch("subprocess.run", mock_run):
         test_runner_one.login()
         mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", "--trust"], stdout=subprocess.PIPE,
@@ -76,6 +95,97 @@ def test_login(test_runner_one, test_runner_two, test_runner_three):
         mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", ""],
                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+
+def make_temp_fs():
+    return tempfs.TempFS()
+
+
+@freeze_time("Jan 1st, 2000")
+def test_backup(test_runner_one, test_runner_two, test_runner_three, mock_run_backup,
+                mock_lzma, monkeypatch, mock_fernet):
+    monkeypatch.setattr(test_runner_one, '_configure_backing_store', make_temp_fs)
+    monkeypatch.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
+    monkeypatch.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
+    with mock.patch('subprocess.run', mock_run_backup):
+        with mock.patch('lzma.compress', mock_lzma):
+            with mock.patch('lp_backup.file_io.write_out_backup', mock.MagicMock()) as mock_write:
+                test_runner_one.backup()
+                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                        stdout=subprocess.PIPE)
+                # test_runner_one.fernet.encrypt.assert_called_once()
+                mock_lzma.assert_called_once()
+                outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
+                           "-lastpass-backup" + ".csv.encrypted.xz")
+                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
+                                                   prefix="backupfolder/", data=mock.ANY)
+                mock_lzma.reset_mock()
+                mock_run_backup.reset_mock()
+                mock_write.reset_mock()
+
+                test_runner_two.backup()
+                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                        stdout=subprocess.PIPE)
+                # test_runner_one.fernet.encrypt.assert_called_once()
+                mock_lzma.assert_called_once()
+                outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
+                           "-lastpass-backup" + ".csv.xz")
+                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
+                                                   prefix="hi", data=mock.ANY)
+                mock_lzma.reset_mock()
+                mock_run_backup.reset_mock()
+                mock_write.reset_mock()
+
+                test_runner_three.backup()
+                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                        stdout=subprocess.PIPE)
+                # test_runner_one.fernet.encrypt.assert_called_once()
+                mock_lzma.assert_not_called()
+                outfile = ("johnsmith@example.com" +
+                           "-lastpass-backup" + ".csv.encrypted")
+                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
+                                                   prefix="", data=mock.ANY)
+
+
+@mock.patch('lzma.decompress')
+# @mock.patch('lp_backup.file_io.read_backup')
+def test_restore(mock_lzma, test_runner_one, test_runner_two, test_runner_three, monkeypatch):
+    mock_fernet = mock.MagicMock()
+    for runner in [test_runner_three, test_runner_two, test_runner_one]:
+        monkeypatch.setattr(runner, '_configure_backing_store', make_temp_fs)
+        monkeypatch.setattr(runner, 'filesystem', mock.MagicMock())
+        try:
+            monkeypatch.setattr(runner.fernet, 'decrypt', mock_fernet)
+        except AttributeError:
+            # test_runner_two has no fernet
+            if runner == test_runner_two:
+                pass
+    # monkeypatch.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
+    # monkeypatch.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
+    #
+    # monkeypatch.setattr(test_runner_one.fernet, 'decrypt', mock_fernet)
+    # # monkeypatch.setattr(test_runner_two.fernet, 'decrypt', mock_fernet)
+    # monkeypatch.setattr(test_runner_three.fernet, 'decrypt', mock_fernet)
+    #
+    # monkeypatch.setattr(test_runner_one, 'filesystem', mock.MagicMock())
+    # monkeypatch.setattr(test_runner_two, 'filesystem', mock.MagicMock())
+    # monkeypatch.setattr(test_runner_three, 'filesystem', mock.MagicMock())
+
+    mock_read_backup = mock.MagicMock()
+    mock_read_backup.return_value = "thisis,some\ncomma,separated\ndata,for,testing"
+    monkeypatch.setattr(file_io, "read_backup", mock_read_backup)
+
+    test_runner_one.restore("testfile1.csv.encrypted.xz", "restorefile.csv")
+    mock_read_backup.assert_called_once_with(mock.ANY, "testfile1.csv.encrypted.xz", "backupfolder/")
+    mock_lzma.assert_called_once()
+    mock_fernet.assert_called_once()
+
+    mock_read_backup.reset_mock()
+    mock_lzma.reset_mock()
+    mock_fernet.reset_mock()
+    test_runner_two.restore("testfile1.csv.xz", "restorefile.csv")
+    mock_read_backup.assert_called_once_with(mock.ANY, "testfile1.csv.xz", "hi")
+    mock_lzma.assert_called_once()
+    mock_fernet.assert_not_called()
 
 # def test_configure_backing_store(testrunner, monkeypatch, bad_testrunner):
 #     testfs1 = testrunner._configure_backing_store()

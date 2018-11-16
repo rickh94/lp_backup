@@ -10,6 +10,7 @@ cryptography = "*"
 fs = "*"
 "fs-s3fs" = "*"
 lp-backup = {editable = true, path = "."}
+freezegun = "*"
 
 [dev-packages]
 ptpython = "*"

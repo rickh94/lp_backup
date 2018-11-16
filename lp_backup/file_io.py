@@ -2,7 +2,7 @@ import os
 import json
 import re
 from fs.copy import copy_fs, copy_file
-from fs.errors import  DirectoryExists
+from fs.errors import DirectoryExists
 from fs import tempfs
 
 
@@ -46,7 +46,7 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
 
 def read_backup(backing_store_fs, infile, prefix=""):
     tmp = tempfs.TempFS()
-    data = ""
+    # data = ""
     if isinstance(backing_store_fs, list):
         backing_store_fs = backing_store_fs[0]
     copy_file(backing_store_fs, prefix + infile, tmp, infile)
