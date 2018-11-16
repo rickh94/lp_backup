@@ -11,17 +11,14 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
     Write the backup data to its final location. A backing store is required
     and either a filepath to the packaged backup or the tmp filesystem is required.
 
-    :param required backing_store_fs: a pyfilesystem2 object to be the final storage
+    :param backing_store_fs: a pyfilesystem2 object to be the final storage
             location of the backup. (should be `OSFS`, `S3FS`, `FTPFS`, etc.)
             Can be a single object or list of filesystem objects for copying to
             multiple backing stores.
-
-    :param required data: the byte stream that needs to be written to the file
-    on the backing store fs.
-
-    :param requried outfile: the name of the file to write out to.
-
-    :param prefix: a parent directory for the files to be saved under.
+    :param data: the byte stream that needs to be written to the file
+        on the backing store fs.
+    :param outfile: the name of the file to write out to.
+    :param optional prefix: a parent directory for the files to be saved under.
             This is can be a good place to encode some information about the
             backup. A slash will be appended to the prefix to create
             a directory or pseudo-directory structure.
@@ -46,6 +43,15 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
 
 
 def read_backup(backing_store_fs, infile, prefix=""):
+    """
+    Read a backup file from some pyfilesystem.
+
+    :param backing_store_fs: The pyfilesystem object where the file is located
+    :param infile: the name of the file
+    :param optional prefix: the prefix before the filename
+
+    :return: raw file data
+    """
     tmp = tempfs.TempFS()
     # data = ""
     if prefix and not prefix[-1] == '/':

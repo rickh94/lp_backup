@@ -18,6 +18,7 @@ pytest-cov = "*"
 sphinx = "*"
 recommonmark = "*"
 freezegun = "*"
+sphinx-rtd-theme = "*"
 
 [requires]
 python_version = "3.6"

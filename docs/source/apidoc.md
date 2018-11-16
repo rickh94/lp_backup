@@ -6,15 +6,11 @@ functions available to the api.
 ## Automated Runner
 ```eval_rst
 .. autoclass:: lp_backup.Runner
+  :members:
 ```
 
 
-
-## Useful Methods/Classes
-
-
-
-### File I/O
+## File I/O
 ```eval_rst
 .. automodule:: lp_backup.file_io
   :members:

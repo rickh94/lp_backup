@@ -16,19 +16,19 @@ from fs_s3fs import S3FS
 
 from lp_backup import file_io
 from lp_backup import exceptions
-# from . import __docurl__
+# from lp_backup import __docurl__
 
 
 class Runner(object):
     """
     This class handles orchestration of downloading and storing the backup.
     Options are set in a yaml configuration file. There is an
-    :download:`example <./sample-config.yml>` you can use as a
-    starting point.
+    :download:`example <https://github.com/rickh94/lp_backup/blob/master/docs/source/sample-config.yml>`
+    you can use as a starting point.
 
-    :param path: (required) absolute path to the file on the system or relative to
+    :param path: absolute path to the file on the system or relative to
         the FS object supplied in the filesystem parameter
-    :param filesystem: (keyword only) a pyfilesystem2 FS object where the yaml config
+    :param keyword filesystem: a pyfilesystem2 FS object where the yaml config
         file is located.
     """
     def __init__(self, path, *, filesystem=None):
@@ -80,12 +80,6 @@ class Runner(object):
         """
         if not self.logged_in:
             self.login()
-        # print("logged in")
-        # sync = self.sultan.lpass("sync").run()
-        # if sync.stderr:
-        #     raise exceptions.BackupFailed(sync.stderr)
-        # print("synced")
-        # run_backup = self.sultan.lpass("export").run()
         run_backup = subprocess.run(["lpass", "export"], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         file_suffix = '.csv'
         if run_backup.stderr:
@@ -121,6 +115,13 @@ class Runner(object):
         return outfile
 
     def restore(self, infilename, new_file):
+        """
+        Restore backup to a plain text csv file for uploading to password manager.
+
+        :param infilename:  the name of the backup file
+        :param new_file: the filename to save the data to
+
+        """
         try:
             restorefs = self._configure_backing_store()
             prefix = self.config["Backing Store"].get("Prefix", "")
@@ -159,7 +160,7 @@ class Runner(object):
 def _config_error(err=''):
     raise exceptions.ConfigurationError(
         "Options are missing in the configuration file. "
-        f"Please consult the docs...somewhere?.\n"
+        f"Please consult the docs at https://lastpass-local-backup.readthedocs.io\n"
         f"{err}")
 
 

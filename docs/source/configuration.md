@@ -56,11 +56,11 @@ Specify Date: True for adding date information to the backup file/folders.
       Key ID: $DOKEY
       Secret Key: $DOSECRET
      ```
-   * Example Webdav:
-     *IF YOU DO THIS: please please please don't use your main password, set up multi-factor authentication
-     and generate a single app password. This is a plain text file protected only by filesystem permissions
-     (which should probably be 600, by the way). Even better, make a dedicated user account for this purpose,
-     so that none of your other data is put at risk.*
+   * `webdav`: You can use any webdav service with password authentication.
+   You can store the relevant information in the config file, or specify
+   environment variables
+
+     Example Configuration:
      ```yaml
      Backing Store:
       Type: webdav
@@ -70,3 +70,8 @@ Specify Date: True for adding date information to the backup file/folders.
       Prefix: my/lastpass/backups
       Date: True
      ```
+
+     *IF YOU DO THIS: please please please don't use your main password, set up multi-factor authentication
+     and generate a single app password. This is a plain text file protected only by filesystem permissions
+     (which should probably be 600, by the way). Even better, make a dedicated user account for this purpose,
+     so that none of your other data is put at risk.*
