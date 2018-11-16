@@ -27,7 +27,7 @@ setup(
     install_requires=[
         # 'sultan',
         'boto3',
-        'fs',
+        'fs==2.1.2',
         'fs-s3fs',
     ],
     tests_require=['pytest', 'pytest-cov'],
