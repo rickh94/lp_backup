@@ -47,6 +47,8 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
 def read_backup(backing_store_fs, infile, prefix=""):
     tmp = tempfs.TempFS()
     # data = ""
+    if prefix and not prefix[-1] == '/':
+        prefix = prefix + '/'
     if isinstance(backing_store_fs, list):
         backing_store_fs = backing_store_fs[0]
     copy_file(backing_store_fs, prefix + infile, tmp, infile)
