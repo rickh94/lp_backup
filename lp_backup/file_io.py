@@ -25,6 +25,7 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
             This is can be a good place to encode some information about the
             backup. A slash will be appended to the prefix to create
             a directory or pseudo-directory structure.
+
     """
     if prefix and not prefix[-1] == '/':
         prefix = prefix + '/'

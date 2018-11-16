@@ -23,7 +23,7 @@ class Runner(object):
     """
     This class handles orchestration of downloading and storing the backup.
     Options are set in a yaml configuration file. There is an
-    :download:`example <./sample-config.yaml>` you can use as a
+    :download:`example <./sample-config.yml>` you can use as a
     starting point.
 
     :param path: (required) absolute path to the file on the system or relative to
@@ -148,6 +148,8 @@ class Runner(object):
                         aws_secret_access_key=bs.get('Secret Key', None),
                         endpoint_url=bs.get('Endpoint URL', None)
                     )
+                # elif 'dav' in bs['Type'].lower():
+
             else:
                 return fs.open_fs(bs['URI'], create=True)
         except (KeyError, OSError, CreateFailed) as err:

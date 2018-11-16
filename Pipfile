@@ -1,21 +1,31 @@
 [[source]]
+
 url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+
 [packages]
+
 cryptography = "*"
 "ruamel.yaml" = "*"
 fs = "*"
 "fs-s3fs" = "*"
 lp-backup = {editable = true, path = "."}
 freezegun = "*"
+"fs.webdavfs" = {git = "https://github.com/PyFilesystem/webdavfs"}
+
 
 [dev-packages]
+
 ptpython = "*"
 pyperclip = "*"
 pytest-mock = "*"
 pytest-cov = "*"
+sphinx = "*"
+recommonmark = "*"
+
 
 [requires]
+
 python_version = "3.6"

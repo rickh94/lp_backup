@@ -2,7 +2,7 @@ from os import path
 from setuptools import setup, find_packages
 
 HERE = path.abspath(path.dirname(__file__))
-VERS = '0.1a2'
+VERS = '0.1'
 DESC = 'Script to create local backups from lastpass'
 
 with open(path.join(HERE, 'README.md'), 'r') as f:
@@ -20,7 +20,7 @@ setup(
     author_email='fredericmhenry@gmail.com',
 
     license='MIT',
-    python_requires='>=3',
+    python_requires='>=3.6',
 
     packages=find_packages(),
 
