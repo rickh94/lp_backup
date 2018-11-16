@@ -9,7 +9,7 @@ before_install:
   - pip install codecov
 #  - pip install pytest-cov
 install:
-  - pipenv install --dev .
+  - pipenv install
 
 script: pipenv run pytest
 
