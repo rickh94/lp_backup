@@ -7,11 +7,12 @@ import subprocess
 from freezegun import freeze_time
 
 #from fs import open_fs
+import fs
 from fs import tempfs
 import pytest
 #
 # from lp_backup import runner
-# from lp_backup import exceptions
+from lp_backup import exceptions
 from lp_backup import file_io
 
 HERE = os.path.dirname(__file__)
@@ -94,10 +95,29 @@ def test_login(test_runner_one, test_runner_two, test_runner_three, mock_run):
         test_runner_three.login()
         mock_run.assert_called_once_with(["lpass", "login", "johnsmith@example.com", ""],
                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    mock_fail = mock.MagicMock()
+    mock_fail_return = mock.MagicMock()
+    mock_fail_return.stderr = "this is supposed to fail"
+    mock_fail.return_value = mock_fail_return
+    mock_fail2 = mock.MagicMock()
+    mock_fail_return2 = mock.MagicMock()
+    mock_fail_return2.stderr = ""
+    mock_fail_return2.stdout = "not logged in"
+    mock_fail2.return_value = mock_fail_return2
+
+    with pytest.raises(exceptions.LoginFailed):
+        with mock.patch("subprocess.run", mock_fail):
+            test_runner_one.login()
+        with mock.patch("subprocess.run", mock_fail2):
+            test_runner_two.login()
 
 
 def make_temp_fs():
     return tempfs.TempFS()
+
+
+def raise_key_error():
+    raise KeyError()
 
 
 @freeze_time("Jan 1st, 2000")
@@ -106,9 +126,9 @@ def test_backup(test_runner_one, test_runner_two, test_runner_three, mock_run_ba
     monkeypatch.setattr(test_runner_one, '_configure_backing_store', make_temp_fs)
     monkeypatch.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
     monkeypatch.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
-    with mock.patch('subprocess.run', mock_run_backup):
-        with mock.patch('lzma.compress', mock_lzma):
-            with mock.patch('lp_backup.file_io.write_out_backup', mock.MagicMock()) as mock_write:
+    with mock.patch('lzma.compress', mock_lzma):
+        with mock.patch('lp_backup.file_io.write_out_backup', mock.MagicMock()) as mock_write:
+            with mock.patch('subprocess.run', mock_run_backup):
                 test_runner_one.backup()
                 mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
                                                         stdout=subprocess.PIPE)
@@ -144,6 +164,23 @@ def test_backup(test_runner_one, test_runner_two, test_runner_three, mock_run_ba
                            "-lastpass-backup" + ".csv.encrypted")
                 mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
                                                    prefix="", data=mock.ANY)
+
+                # if there's a keyerror, it should raise a config error
+                with monkeypatch.context() as m:
+                    m.setattr(test_runner_three, '_configure_backing_store', raise_key_error)
+                    with pytest.raises(exceptions.ConfigurationError):
+                        test_runner_three.backup()
+
+            # raise backupfailed if there is stderr
+            mock_backup_fail = mock.MagicMock()
+            mock_fail_return = mock.MagicMock()
+            mock_fail_return.sterr = "somthing has gone wrong"
+            mock_backup_fail.return_value = mock_fail_return
+
+            with pytest.raises(exceptions.BackupFailed):
+                with mock.patch("subprocess.run", mock_backup_fail):
+                    test_runner_one.backup()
+
 
 
 @mock.patch('lzma.decompress')
@@ -187,35 +224,43 @@ def test_restore(mock_lzma, test_runner_one, test_runner_two, test_runner_three,
     mock_lzma.assert_called_once()
     mock_fernet.assert_not_called()
 
-# def test_configure_backing_store(testrunner, monkeypatch, bad_testrunner):
-#     testfs1 = testrunner._configure_backing_store()
-#     assert testfs1._bucket_name == 'mybackupbucket'
-#     assert testfs1.aws_access_key_id is None
-#     assert testfs1.aws_secret_access_key is None
-#     assert testfs1.endpoint_url is None
-#     assert testfs1.strict is False
-#     testfs1.close()
+
+def raise_oserror(*args, **kwargs):
+    raise OSError()
+
+
+def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, test_runner_three):
+    testfs1 = test_runner_one._configure_backing_store()
+    assert testfs1._bucket_name == 'mybackupbucket'
+    assert testfs1.aws_access_key_id is None
+    assert testfs1.aws_secret_access_key is None
+    assert testfs1.endpoint_url is None
+    assert testfs1.strict is False
+    testfs1.close()
+
+    testfs2 = test_runner_two._configure_backing_store()
+    assert testfs2.root_path == '/tmp/mybackup'
+    testfs2.close()
+    assert os.path.exists('/tmp/mybackup')
+    assert os.path.isdir('/tmp/mybackup')
+    os.rmdir('/tmp/mybackup')
+
+    # with monkeypatch.context() as m:
+    monkeypatch.setenv('DOKEY', 'testkeyid')
+    monkeypatch.setenv('DOSECRET', 'testsecretkey')
+    testfs3 = test_runner_three._configure_backing_store()
+    assert testfs3._bucket_name == 'testbackupspace'
+    assert testfs3.aws_access_key_id == 'testkeyid'
+    assert testfs3.aws_secret_access_key == 'testsecretkey'
+    assert testfs3.endpoint_url == 'https://nyc3.digitaloceanspaces.com'
+    assert testfs3.strict is False
+    testfs3.close()
+
+    with monkeypatch.context() as m:
+        m.setattr(fs, 'open_fs', raise_oserror)
+        with pytest.raises(exceptions.ConfigurationError):
+            test_runner_two._configure_backing_store()
 #
-#     monkeypatch.setenv('DOKEY', 'testkeyid')
-#     monkeypatch.setenv('DOSECRET', 'testsecretkey')
-#     test2runner = runner.Runner(str(Path(DATA, 'testconf-2.yml')))
-#     testfs2 = test2runner._configure_backing_store()
-#     assert testfs2._bucket_name == 'testbackupspace'
-#     assert testfs2.aws_access_key_id == 'testkeyid'
-#     assert testfs2.aws_secret_access_key == 'testsecretkey'
-#     assert testfs2.endpoint_url == 'https://nyc3.digitaloceanspaces.com'
-#     assert testfs2.strict is False
-#     testfs2.close()
-#
-#     test3runner = runner.Runner(str(Path(DATA, 'testconf-3.yml')))
-#     testfs3 = test3runner._configure_backing_store()
-#     assert testfs3.root_path == '/tmp/testbackupdir'
-#     testfs3.close()
-#     assert os.path.exists('/tmp/testbackupdir')
-#     assert os.path.isdir('/tmp/testbackupdir')
-#
-#     with pytest.raises(ConfigurationError):
-#         bad_testrunner._configure_backing_store()
 #
 #
 # def test_package(testrunner, tmpdir, table_names):

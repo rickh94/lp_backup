@@ -157,7 +157,7 @@ class Runner(object):
 def _config_error(err=''):
     raise exceptions.ConfigurationError(
         "Options are missing in the configuration file. "
-        f"Please consult the docs at {__docurl__}.\n"
+        f"Please consult the docs...somewhere?.\n"
         f"{err}")
 
 
