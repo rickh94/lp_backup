@@ -30,12 +30,13 @@ setup(
         'fs==2.1.2',
         'fs-s3fs',
         'ruamel.yaml',
-        'cryptography'
+        'cryptography',
+        'fs.webdavfs'
     ],
-    tests_require=['pytest', 'pytest-cov'],
+    tests_require=['pytest', 'pytest-cov', 'freezegun', 'pytest-runner'],
     # setup_requires=['pytest-runner'],
     dependency_links=[
-        "http://github.com/PyFilesystem/webdavfs#egg=fs.webdavfs"
+        "http://github.com/PyFilesystem/webdavfs/tarball/master#egg=fs.webdavfs"
     ]
 
 )
