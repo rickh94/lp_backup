@@ -12,7 +12,6 @@ cryptography = "*"
 fs = "*"
 "fs-s3fs" = "*"
 freezegun = "*"
-"fs.webdavfs" = {git = "https://github.com/PyFilesystem/webdavfs"}
 
 
 [dev-packages]
