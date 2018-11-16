@@ -1,5 +1,6 @@
 # Lastpass Backup
 [![Build Status](https://travis-ci.org/rickh94/lp_backup.svg?branch=master)](https://travis-ci.org/rickh94/lp_backup)
+[![Documentation Status](https://readthedocs.org/projects/lastpass-local-backup/badge/?version=latest)](https://lastpass-local-backup.readthedocs.io/en/latest/?badge=latest)
 
 Easily backup data from lastpass to your own storage.
 
