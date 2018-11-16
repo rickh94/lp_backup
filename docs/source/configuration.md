@@ -5,7 +5,7 @@
 
 
 A great starting point is the [example configuration
-    file](https://github.com/rickh94/lp_backup/master/docs/source/sample-config.yml).
+    file](https://github.com/rickh94/lp_backup/blob/master/docs/source/sample-config.yml).
 
 
 ## What You'll Need
