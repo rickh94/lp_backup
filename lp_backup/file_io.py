@@ -1,7 +1,4 @@
-import os
-import json
-import re
-from fs.copy import copy_fs, copy_file
+from fs.copy import copy_file
 from fs.errors import DirectoryExists
 from fs import tempfs
 

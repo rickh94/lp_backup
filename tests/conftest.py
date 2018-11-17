@@ -3,7 +3,6 @@ import os
 import shutil
 from unittest import mock
 from pathlib import Path
-from ruamel.yaml import YAML
 from lp_backup.runner import Runner
 
 HERE = os.path.dirname(__file__)

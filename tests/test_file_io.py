@@ -1,13 +1,6 @@
-import os
-from pathlib import Path
-
 from lp_backup import file_io
 import pytest
 import fs
-
-
-def rettrue(*args):
-    return True
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 HERE = path.abspath(path.dirname(__file__))
 VERS = '0.1'
-DESC = 'Script to create local backups from lastpass'
+DESC = 'Script to create local backups from Lastpass'
 
 with open(path.join(HERE, 'README.md'), 'r') as f:
     LONG_DESCRIPTION = f.read()
