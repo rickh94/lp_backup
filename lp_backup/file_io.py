@@ -1,6 +1,10 @@
+import botocore
+import fs
 from fs.copy import copy_file
 from fs.errors import DirectoryExists
 from fs import tempfs
+
+from lp_backup import exceptions
 
 
 def write_out_backup(backing_store_fs, data, outfile, prefix=''):
@@ -53,9 +57,20 @@ def read_backup(backing_store_fs, infile, prefix=""):
     # data = ""
     if prefix and not prefix[-1] == '/':
         prefix = prefix + '/'
-    if isinstance(backing_store_fs, list):
-        backing_store_fs = backing_store_fs[0]
-    copy_file(backing_store_fs, prefix + infile, tmp, infile)
+    if not isinstance(backing_store_fs, list):
+        backing_store_fs = [backing_store_fs]
+    restore_succeeded = False
+    for backing_fs in backing_store_fs:
+        try:
+            copy_file(backing_fs, prefix + infile, tmp, infile)
+            restore_succeeded = True
+            break
+        except (botocore.exceptions.NoCredentialsError, OSError,
+                fs.errors.ResourceNotFound, fs.errors.PermissionDenied):
+            continue
+    if not restore_succeeded:
+        raise exceptions.ConfigurationError("Specified file could not be found in any"
+                                            " of the available backing stores.")
     with tmp.open(infile, 'rb') as retrieved_file:
         data = retrieved_file.read()
     tmp.clean()

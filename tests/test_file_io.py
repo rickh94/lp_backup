@@ -1,4 +1,7 @@
-from lp_backup import file_io
+import botocore
+import fs_s3fs
+
+from lp_backup import file_io, exceptions
 import pytest
 import fs
 
@@ -42,7 +45,7 @@ def test_write_out_backup(tmpdir_factory, test_backup_data):
         fs_.close()
 
 
-def test_read_backup(tmpdir_factory, test_backup_data):
+def test_read_backup(tmpdir_factory, test_backup_data, monkeypatch):
     testdir = [tmpdir_factory.mktemp(f"read_backup_{i}") for i in range(0, 3)]
     back_fs = [fs.open_fs(str(dir_)) for dir_ in testdir]
     outfile = [f"today-email-number{i}" for i in range(0, 3)]
@@ -59,4 +62,26 @@ def test_read_backup(tmpdir_factory, test_backup_data):
         test_file.write(test_backup_data)
     prefix_data_found = file_io.read_backup(back_fs_prefix, outfile_prefix, test_prefix)
     assert prefix_data_found == test_backup_data
+
+    def raise_credentials_error(backfs, infile, tmp, outfile, *_):
+        if isinstance(backfs, fs_s3fs.S3FS):
+            raise botocore.exceptions.NoCredentialsError
+        else:
+            fs.copy.copy_file(backfs, infile, tmp, outfile)
+
+    back_s3_fs = fs_s3fs.S3FS('fake-bucket')
+    back_fs_errors = fs.open_fs(str(tmpdir_factory.mktemp(f"read_backup_5")))
+    outfile_errors = 'today-email-number4'
+    with back_fs_errors.open(outfile_errors, 'wb') as test_file:
+        test_file.write(test_backup_data)
+    with monkeypatch.context() as m:
+        m.setattr(fs.copy, 'copy_file', raise_credentials_error)
+        restore_data = file_io.read_backup([back_s3_fs, back_fs_errors], outfile_errors)
+        assert restore_data == test_backup_data
+
+    back_fs_errors2 = [fs.open_fs(str(tmpdir_factory.mktemp(f"read_backup_{i}"))) for i in [6, 7]]
+    with pytest.raises(exceptions.ConfigurationError):
+        _ = file_io.read_backup(back_fs_errors2, 'does-not-exist')
+
+
 
