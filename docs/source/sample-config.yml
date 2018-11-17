@@ -37,7 +37,8 @@ Compression: true
 # so that none of your other data is put at risk. </diatribe>
 #Backing Store:
 #  - Type: webdav
-#    URL: https://mynextcloudserver.com/remote.php/webdav
+#    Base URL: https://mynextcloudserver.com
+#    Root: /remote.php/webdav
 #    Username: john
 #    Password: my-single-app-password
 Prefix: backupfolder/
