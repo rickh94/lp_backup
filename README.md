@@ -16,10 +16,10 @@ Install [fs.webdavfs](https://github.com/PyFilesystem/webdavfs) for webdav suppo
 
 ## Usage
 
-```python
+```
 from lp_backup import Runner
 
-# create backup runner 
+# create backup runner
 example_backup_runner = Runner("/home/YOUR_USER/.config/lp_backup.yml")
 # run backup
 backup_file_name = example_backup_runner.backup()
