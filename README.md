@@ -10,9 +10,11 @@ You first need to install the [lastpass commandline
 tool](https://github.com/lastpass/lastpass-cli) for your platform.
 It is used internally for accessing the lastpass api.
 
-Then clone the repo and run `python3 setup.py install`
+```bash
+$ pip install lp_backup
+```
 
-Install [fs.webdavfs](https://github.com/PyFilesystem/webdavfs) for webdav support.
+Install [fs.webdavfs](https://github.com/damndam/webdavfs) for webdav support.
 
 ## Usage
 

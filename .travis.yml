@@ -3,6 +3,11 @@ cache: pip
 python:
   - "3.6"
   - "3.7-dev"
+  - "pypy3"
+
+matrix:
+  allow_failures:
+    - python: "pypy3"
 
 before_install:
   - pip install pipenv
