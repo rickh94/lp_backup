@@ -53,7 +53,7 @@ class Runner(object):
         if out.stderr:
             print(out.stderr)
             raise exceptions.LoginFailed(out.stderr)
-        if "Success:" in out.stdout[0]:
+        if "Success:" in out.stdout.decode('utf-8'):
             self.logged_in = True
         else:
             print(out.stderr + " " + out.stdout)
@@ -85,10 +85,10 @@ class Runner(object):
         if run_backup.stderr:
             raise exceptions.BackupFailed(run_backup.stderr)
         # print("backup downloaded")
-        backup_lines = run_backup.stdout
-        backup_data = '\n'.join(backup_lines)
+        backup_data = run_backup.stdout
+        # backup_data = '\n'.join(backup_lines)
         if self.fernet:
-            backup_data = self.fernet.encrypt(backup_data.encode('utf-8'))
+            backup_data = self.fernet.encrypt(backup_data)
             file_suffix += ".encrypted"
         if self.config.get("Compression", False):
             backup_data = lzma.compress(backup_data)

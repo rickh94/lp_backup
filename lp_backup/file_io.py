@@ -26,7 +26,7 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
     if not isinstance(backing_store_fs, list):
         backing_store_fs = [backing_store_fs]
     for backing_fs in backing_store_fs:
-        print(backing_fs)
+        # print(backing_fs)
         tmp = tempfs.TempFS()
         with tmp.open("lp-tmp-backup", 'wb') as tmp_file:
             tmp_file.write(data)
@@ -34,7 +34,7 @@ def write_out_backup(backing_store_fs, data, outfile, prefix=''):
             backing_fs.makedirs(prefix)
         except DirectoryExists:
             pass
-        print(prefix, outfile)
+        # print(prefix, outfile)
         copy_file(tmp, "lp-tmp-backup", backing_fs, str(prefix + outfile))
         tmp.clean()
 

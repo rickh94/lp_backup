@@ -91,7 +91,7 @@ def mock_run():
     run = mock.MagicMock()
     mock_return = mock.MagicMock()
     mock_return.stderr = ""
-    mock_return.stdout = ["Success: "]
+    mock_return.stdout = "Success: ".encode('utf-8')
     run.return_value = mock_return
     return run
 
@@ -101,7 +101,7 @@ def mock_run_backup():
     run = mock.MagicMock()
     mock_return = mock.MagicMock()
     mock_return.stderr = ""
-    mock_return.stdout = ["some backup data", "more data", "yet more data"]
+    mock_return.stdout = '\n'.join(["some backup data", "more data", "yet more data"]).encode('utf-8')
     run.return_value = mock_return
     return run
 
@@ -325,7 +325,7 @@ def test_backup_and_restore(test_runner_one, monkeypatch, tmpdir_factory):
         return backup_test_fs
 
     class BackupData:
-        stdout = ["this,is,some,data,i", "can,verify,later", "if i want to"]
+        stdout = '\n'.join(["this,is,some,data,i", "can,verify,later", "if i want to"]).encode('utf-8')
         stderr = ""
 
     def backup_data(*args, **kwargs):
@@ -338,6 +338,6 @@ def test_backup_and_restore(test_runner_one, monkeypatch, tmpdir_factory):
         restore_file = os.path.join(restore_folder, backup_file)
         test_runner_one.restore(backup_file, restore_file)
         with open(restore_file, 'rb') as restore:
-            assert restore.read() == '\n'.join(BackupData().stdout).encode('utf-8')
+            assert restore.read() == BackupData().stdout
 
 
