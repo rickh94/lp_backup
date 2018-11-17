@@ -14,6 +14,7 @@ from fs import tempfs
 
 webdav_available = False
 try:
+    import webdavfs
     from webdavfs.webdavfs import WebDAVFS
     webdav_available = True
 except ModuleNotFoundError:
@@ -306,7 +307,7 @@ def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, 
     else:
         with pytest.raises(exceptions.NoWebdav):
             m.setenv('WEBDAV_PASSWORD', 'testpassword')
-            testfs4 = test_runner_four._configure_backing_store()
+            _ = test_runner_four._configure_backing_store()
 
 
     with monkeypatch.context() as m:

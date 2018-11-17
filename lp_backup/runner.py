@@ -8,6 +8,8 @@ from cryptography.fernet import Fernet
 import fs
 from fs.errors import CreateFailed
 from fs_s3fs import S3FS
+from lp_backup import file_io
+from lp_backup import exceptions
 
 webdav_available = False
 try:
@@ -15,12 +17,6 @@ try:
     webdav_available = True
 except ModuleNotFoundError:
     webdav_available = False
-
-
-
-from lp_backup import file_io
-from lp_backup import exceptions
-# from lp_backup import __docurl__
 
 
 class Runner(object):
