@@ -1,4 +1,6 @@
 import datetime
+import fs_s3fs
+import lzma
 import os
 from cryptography.fernet import Fernet
 from pathlib import Path
@@ -12,54 +14,72 @@ from fs import tempfs
 import pytest
 #
 # from lp_backup import runner
+from webdavfs.webdavfs import WebDAVFS
+
 from lp_backup import exceptions
 from lp_backup import file_io
+import lp_backup
 
 HERE = os.path.dirname(__file__)
 DATA = Path(HERE, 'testdata')
 
 
-def test_config_file_read(test_runner_one, test_runner_two, test_runner_three):
+def test_config_file_read(test_runner_one, test_runner_two, test_runner_three,
+                          test_runner_four):
     """Test reading configuration files correctly."""
     # test runner one
     assert test_runner_one.config["Email"] == "johnsmith@example.com"
     assert test_runner_one.config["Trust"] is True
     # assert test_runner_one.config["Encryption Key"] == "generate"
     assert test_runner_one.config["Compression"] is True
-    assert test_runner_one.config["Backing Store"]["Type"] == "S3"
-    assert test_runner_one.config["Backing Store"]["Bucket"] == "mybackupbucket"
-    assert test_runner_one.config["Backing Store"]["Prefix"] == "backupfolder/"
-    assert test_runner_one.config["Backing Store"]["Date"] is True
+    assert test_runner_one.config["Backing Store"][0]["Type"] == "S3"
+    assert test_runner_one.config["Backing Store"][0]["Bucket"] == "mybackupbucket"
+    assert test_runner_one.config["Prefix"] == "backupfolder/"
+    assert test_runner_one.config["Date"] is True
     # test runner two
     assert test_runner_two.config["Email"] == "johnsmith@example.com"
     assert test_runner_two.config["Trust"] is True
     assert test_runner_two.config["Encryption Key"] is None
     assert test_runner_two.config["Compression"] is True
-    assert test_runner_two.config["Backing Store"]["URI"] == "/tmp/mybackup"
-    assert test_runner_two.config["Backing Store"]["Prefix"] == "hi"
-    assert test_runner_two.config["Backing Store"]["Date"] is True
+    assert test_runner_two.config["Backing Store"][0]["URI"] == "/tmp/mybackup"
+    assert test_runner_two.config["Backing Store"][1]["URI"] == "/tmp/mybackup2"
+    assert test_runner_two.config["Prefix"] == "hi"
+    assert test_runner_two.config["Date"] is True
     # test runner three
     assert test_runner_three.config["Email"] == "johnsmith@example.com"
     assert test_runner_three.config["Trust"] is False
     # assert test_runner_three.config["Encryption Key"] ==
     # assert test_runner_three.fernet == Fernet("d0RlMDVhd29jek5hUmpSNzJxXy1Ba01aZzBYMy16TElQbm9Qc2JyUXp5QT0=")
     assert test_runner_three.config["Compression"] is False
-    assert test_runner_three.config["Backing Store"]["Type"] == "S3"
-    assert test_runner_three.config["Backing Store"]["Bucket"] == "testbackupspace"
-    assert test_runner_three.config["Backing Store"]["Endpoint URL"] == "https://nyc3.digitaloceanspaces.com"
-    assert test_runner_three.config["Backing Store"]["Key ID"] == "$DOKEY"
-    assert test_runner_three.config["Backing Store"]["Secret Key"] == "$DOSECRET"
-    assert test_runner_three.config["Backing Store"].get("Prefix", "") == ""
-    assert test_runner_three.config["Backing Store"].get("Date", False) is False
+    assert test_runner_three.config["Backing Store"][0]["Type"] == "S3"
+    assert test_runner_three.config["Backing Store"][0]["Bucket"] == "testbackupspace"
+    assert test_runner_three.config["Backing Store"][0]["Endpoint URL"] == "https://nyc3.digitaloceanspaces.com"
+    assert test_runner_three.config["Backing Store"][0]["Key ID"] == "$DOKEY"
+    assert test_runner_three.config["Backing Store"][0]["Secret Key"] == "$DOSECRET"
+    assert test_runner_three.config["Backing Store"][1]["URI"] == "/tmp/backup3"
+    assert test_runner_three.config.get("Prefix", "") == ""
+    assert test_runner_three.config.get("Date", False) is False
+    # test runner four
+    assert test_runner_four.config["Email"] == "johnsmith@example.com"
+    assert test_runner_four.config["Trust"] is True
+    assert test_runner_four.config["Compression"] is True
+    assert test_runner_four.config["Backing Store"][0]["Type"] == "webdav"
+    assert test_runner_four.config["Backing Store"][0]["Base URL"] == "https://mynextcloud.com"
+    assert test_runner_four.config["Backing Store"][0]["Root"] == "remote.php/webdav"
+    assert test_runner_four.config["Backing Store"][0]["Username"] == "john"
+    assert test_runner_four.config["Backing Store"][0]["Password"] == "$WEBDAV_PASSWORD"
+    assert test_runner_four.config["Prefix"] == "backupfolder/"
+    assert test_runner_four.config["Date"] is True
 
 
-def test_configure_encryption(test_runner_one, test_runner_two, test_runner_three):
+def test_configure_encryption(test_runner_one, test_runner_two, test_runner_three, test_runner_four):
     """Tests the correct configuration of encryption for various settings."""
     assert isinstance(test_runner_one.fernet, Fernet)
     assert test_runner_two.fernet is None
     assert isinstance(test_runner_three.fernet, Fernet)
-
-
+    assert isinstance(test_runner_four.fernet, Fernet)
+#
+#
 @pytest.fixture
 def mock_run():
     run = mock.MagicMock()
@@ -122,64 +142,83 @@ def raise_key_error():
 
 @freeze_time("Jan 1st, 2000")
 def test_backup(test_runner_one, test_runner_two, test_runner_three, mock_run_backup,
-                mock_lzma, monkeypatch, mock_fernet):
-    monkeypatch.setattr(test_runner_one, '_configure_backing_store', make_temp_fs)
-    monkeypatch.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
-    monkeypatch.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
-    with mock.patch('lzma.compress', mock_lzma):
-        with mock.patch('lp_backup.file_io.write_out_backup', mock.MagicMock()) as mock_write:
-            with mock.patch('subprocess.run', mock_run_backup):
-                test_runner_one.backup()
-                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
-                                                        stdout=subprocess.PIPE)
-                # test_runner_one.fernet.encrypt.assert_called_once()
-                mock_lzma.assert_called_once()
-                outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
-                           "-lastpass-backup" + ".csv.encrypted.xz")
-                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
-                                                   prefix="backupfolder/", data=mock.ANY)
-                mock_lzma.reset_mock()
-                mock_run_backup.reset_mock()
-                mock_write.reset_mock()
+                mock_lzma, monkeypatch, tmpdir_factory):
+    mock_write = mock.MagicMock()
+    with monkeypatch.context() as m:
+        m.setattr(test_runner_one, '_configure_backing_store', make_temp_fs)
+        m.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
+        m.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
+        m.setattr(lzma, 'compress', mock_lzma)
+        m.setattr(lp_backup.file_io, 'write_out_backup', mock_write)
+        m.setattr(subprocess, 'run', mock_run_backup)
 
-                test_runner_two.backup()
-                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
-                                                        stdout=subprocess.PIPE)
-                # test_runner_one.fernet.encrypt.assert_called_once()
-                mock_lzma.assert_called_once()
-                outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
-                           "-lastpass-backup" + ".csv.xz")
-                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
-                                                   prefix="hi", data=mock.ANY)
-                mock_lzma.reset_mock()
-                mock_run_backup.reset_mock()
-                mock_write.reset_mock()
+        test_runner_one.backup()
+        mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                stdout=subprocess.PIPE)
+        # test_runner_one.fernet.encrypt.assert_called_once()
+        mock_lzma.assert_called_once()
+        outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
+                   "-lastpass-backup" + ".csv.encrypted.xz")
+        mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
+                                           prefix="backupfolder/", data=mock.ANY)
+        mock_lzma.reset_mock()
+        mock_run_backup.reset_mock()
+        mock_write.reset_mock()
 
-                test_runner_three.backup()
-                mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
-                                                        stdout=subprocess.PIPE)
-                # test_runner_one.fernet.encrypt.assert_called_once()
-                mock_lzma.assert_not_called()
-                outfile = ("johnsmith@example.com" +
-                           "-lastpass-backup" + ".csv.encrypted")
-                mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
-                                                   prefix="", data=mock.ANY)
+        test_runner_three.backup()
+        mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                stdout=subprocess.PIPE)
+        # test_runner_one.fernet.encrypt.assert_called_once()
+        mock_lzma.assert_not_called()
+        outfile = ("johnsmith@example.com" +
+                   "-lastpass-backup" + ".csv.encrypted")
+        mock_write.assert_called_once_with(backing_store_fs=mock.ANY, outfile=outfile,
+                                           prefix="", data=mock.ANY)
 
-                # if there's a keyerror, it should raise a config error
-                with monkeypatch.context() as m:
-                    m.setattr(test_runner_three, '_configure_backing_store', raise_key_error)
-                    with pytest.raises(exceptions.ConfigurationError):
-                        test_runner_three.backup()
+        # if there's a keyerror, it should raise a config error
+        m.setattr(test_runner_three, '_configure_backing_store', raise_key_error)
+        with pytest.raises(exceptions.ConfigurationError):
+            test_runner_three.backup()
 
-            # raise backupfailed if there is stderr
-            mock_backup_fail = mock.MagicMock()
-            mock_fail_return = mock.MagicMock()
-            mock_fail_return.sterr = "somthing has gone wrong"
-            mock_backup_fail.return_value = mock_fail_return
+    # raise backupfailed if there is stderr
+    mock_backup_fail = mock.MagicMock()
+    mock_fail_return = mock.MagicMock()
+    mock_fail_return.sterr = "somthing has gone wrong"
+    mock_backup_fail.return_value = mock_fail_return
 
-            with pytest.raises(exceptions.BackupFailed):
-                with mock.patch("subprocess.run", mock_backup_fail):
-                    test_runner_one.backup()
+    with pytest.raises(exceptions.BackupFailed):
+        with mock.patch("subprocess.run", mock_backup_fail):
+            test_runner_one.backup()
+
+    # test multiple backing fs
+    mock_run_backup.reset_mock()
+    tmp_fs1 = fs.open_fs(str(tmpdir_factory.mktemp('test_backup1')))
+    tmp_fs2 = fs.open_fs(str(tmpdir_factory.mktemp('test_backup2')))
+
+    def test_temp_backing_store(*args):
+        return [tmp_fs1, tmp_fs2]
+
+    def random_data(*args):
+        return b'this is some random data'
+
+    with monkeypatch.context() as m:
+        m.setattr(test_runner_two, '_configure_backing_store', test_temp_backing_store)
+        m.setattr(lzma, 'compress', random_data)
+        m.setattr(subprocess, 'run', mock_run_backup)
+        test_runner_two.backup()
+        mock_run_backup.assert_called_once_with(['lpass', 'export'], stderr=subprocess.PIPE,
+                                                stdout=subprocess.PIPE)
+        # test_runner_one.fernet.encrypt.assert_called_once()
+        outfile = (datetime.datetime(2000, 1, 1).isoformat() + '-' + "johnsmith@example.com" +
+                   "-lastpass-backup" + ".csv.xz")
+        assert outfile in tmp_fs1.listdir('hi')
+        assert outfile in tmp_fs2.listdir('hi')
+        with tmp_fs1.open(f'hi/{outfile}', 'rb') as backupfile:
+            assert random_data() in backupfile.read()
+
+        with tmp_fs2.open(f'hi/{outfile}', 'rb') as backupfile:
+            assert random_data() in backupfile.read()
+
 
 
 
@@ -196,16 +235,6 @@ def test_restore(mock_lzma, test_runner_one, test_runner_two, test_runner_three,
             # test_runner_two has no fernet
             if runner == test_runner_two:
                 pass
-    # monkeypatch.setattr(test_runner_two, '_configure_backing_store', make_temp_fs)
-    # monkeypatch.setattr(test_runner_three, '_configure_backing_store', make_temp_fs)
-    #
-    # monkeypatch.setattr(test_runner_one.fernet, 'decrypt', mock_fernet)
-    # # monkeypatch.setattr(test_runner_two.fernet, 'decrypt', mock_fernet)
-    # monkeypatch.setattr(test_runner_three.fernet, 'decrypt', mock_fernet)
-    #
-    # monkeypatch.setattr(test_runner_one, 'filesystem', mock.MagicMock())
-    # monkeypatch.setattr(test_runner_two, 'filesystem', mock.MagicMock())
-    # monkeypatch.setattr(test_runner_three, 'filesystem', mock.MagicMock())
 
     mock_read_backup = mock.MagicMock()
     mock_read_backup.return_value = "thisis,some\ncomma,separated\ndata,for,testing"
@@ -229,8 +258,8 @@ def raise_oserror(*args, **kwargs):
     raise OSError()
 
 
-def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, test_runner_three):
-    testfs1 = test_runner_one._configure_backing_store()
+def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, test_runner_three, test_runner_four):
+    testfs1 = test_runner_one._configure_backing_store()[0]
     assert testfs1._bucket_name == 'mybackupbucket'
     assert testfs1.aws_access_key_id is None
     assert testfs1.aws_secret_access_key is None
@@ -239,45 +268,67 @@ def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, 
     testfs1.close()
 
     testfs2 = test_runner_two._configure_backing_store()
-    assert testfs2.root_path == '/tmp/mybackup'
-    testfs2.close()
+    assert testfs2[0].root_path == '/tmp/mybackup'
+    assert testfs2[1].root_path == '/tmp/mybackup2'
+    testfs2[0].close()
+    testfs2[1].close()
     assert os.path.exists('/tmp/mybackup')
+    assert os.path.exists('/tmp/mybackup2')
     assert os.path.isdir('/tmp/mybackup')
+    assert os.path.isdir('/tmp/mybackup2')
     os.rmdir('/tmp/mybackup')
+    os.rmdir('/tmp/mybackup2')
 
-    # with monkeypatch.context() as m:
-    monkeypatch.setenv('DOKEY', 'testkeyid')
-    monkeypatch.setenv('DOSECRET', 'testsecretkey')
-    testfs3 = test_runner_three._configure_backing_store()
-    assert testfs3._bucket_name == 'testbackupspace'
-    assert testfs3.aws_access_key_id == 'testkeyid'
-    assert testfs3.aws_secret_access_key == 'testsecretkey'
-    assert testfs3.endpoint_url == 'https://nyc3.digitaloceanspaces.com'
-    assert testfs3.strict is False
-    testfs3.close()
+    with monkeypatch.context() as m:
+        m.setenv('DOKEY', 'testkeyid')
+        m.setenv('DOSECRET', 'testsecretkey')
+        testfs3 = test_runner_three._configure_backing_store()[0]
+        assert isinstance(testfs3, fs_s3fs.S3FS)
+        assert testfs3._bucket_name == 'testbackupspace'
+        assert testfs3.aws_access_key_id == 'testkeyid'
+        assert testfs3.aws_secret_access_key == 'testsecretkey'
+        assert testfs3.endpoint_url == 'https://nyc3.digitaloceanspaces.com'
+        assert testfs3.strict is False
+        testfs3.close()
+
+    with monkeypatch.context() as m:
+        m.setenv('WEBDAV_PASSWORD', 'testpassword')
+        testfs4 = test_runner_four._configure_backing_store()[0]
+        assert isinstance(testfs4, WebDAVFS)
+        assert testfs4.url == 'https://mynextcloud.com'
+        assert testfs4.root == '/remote.php/webdav'
+        assert testfs4.client.webdav.login == 'john'
+        assert testfs4.client.webdav.password == 'testpassword'
+        testfs4.close()
 
     with monkeypatch.context() as m:
         m.setattr(fs, 'open_fs', raise_oserror)
         with pytest.raises(exceptions.ConfigurationError):
             test_runner_two._configure_backing_store()
-#
-#
-#
-# def test_package(testrunner, tmpdir, table_names):
-#     testfile = Path(tmpdir, 'testtar.tar')
-#     testrunner._save_tables()
-#     testrunner._package(str(testfile))
-#     testtar = open_fs(f"tar://{testfile}")
-#     for name in table_names:
-#         assert f"{_normalize(name)}.json" in testtar.listdir('/')
-#
-#
-# def test_backup(testrunner, bad_testrunner, tmpdir, monkeypatch):
-#     dirnumber = [0]
-#     def localfs(*args):
-#         name = f"backup{dirnumber[0]}"
-#         path = Path(tmpdir, name)
-#         dirnumber[0] += 1
-#         return open_fs(str(path), create=True)
-#     monkeypatch.setattr(testrunner, '_configure_backing_store', localfs)
-#     testrunner.backup()
+
+
+def test_backup_and_restore(test_runner_one, monkeypatch, tmpdir_factory):
+    backup_test_folder = tmpdir_factory.mktemp('test_backup_restore')
+    backup_test_fs = fs.open_fs(str(backup_test_folder))
+    restore_folder = tmpdir_factory.mktemp('test_restore_from_backup')
+
+    def backup_restore_fs(*args):
+        return backup_test_fs
+
+    class BackupData:
+        stdout = ["this,is,some,data,i", "can,verify,later", "if i want to"]
+        stderr = ""
+
+    def backup_data(*args, **kwargs):
+        return BackupData()
+
+    with monkeypatch.context() as m:
+        m.setattr(test_runner_one, '_configure_backing_store', backup_restore_fs)
+        m.setattr(subprocess, 'run', backup_data)
+        backup_file = test_runner_one.backup()
+        restore_file = os.path.join(restore_folder, backup_file)
+        test_runner_one.restore(backup_file, restore_file)
+        with open(restore_file, 'rb') as restore:
+            assert restore.read() == '\n'.join(BackupData().stdout).encode('utf-8')
+
+

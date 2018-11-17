@@ -2,7 +2,8 @@ Email: johnsmith@example.com
 Trust: true
 Encryption Key: null
 Compression: true
+Prefix: hi
+Date: True
 Backing Store:
-  URI: /tmp/mybackup
-  Prefix: hi
-  Date: True
+  - URI: /tmp/mybackup
+  - URI: /tmp/mybackup2

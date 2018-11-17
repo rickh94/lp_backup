@@ -29,8 +29,8 @@ Compression: true
 #  Endpoint URL: https://nyc3.digitaloceanspaces.com
 #  Key ID: $DOKEY
 #  Secret Key: $DOSECRET
+Prefix: backupfolder/
+Date: true
 Backing Store:
-  Type: S3
-  Bucket: mybackupbucket
-  Prefix: backupfolder/
-  Date: true
+  - Type: S3
+    Bucket: mybackupbucket

@@ -32,10 +32,11 @@ Compression: true
 #  Secret Key: $DOSECRET
 # Example webdav:
 #
+Prefix: backupfolder/
+Date: true
 Backing Store:
-  Type: webdav
-  URL: https://mynextcloud.com/remote.php/webdav
-  Username: john
-  Password: $WEBDAV_PASSWORD
-  Prefix: backupfolder/
-  Date: true
+  - Type: webdav
+    Base URL: https://mynextcloud.com
+    Root: remote.php/webdav
+    Username: john
+    Password: $WEBDAV_PASSWORD

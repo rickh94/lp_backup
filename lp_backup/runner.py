@@ -3,16 +3,12 @@ import os
 import lzma
 import subprocess
 
-# from sultan.api import Sultan
 from ruamel.yaml import YAML
 from cryptography.fernet import Fernet
 import fs
-# from fs import tempfs
-# from fs import tarfs
-# from fs import zipfs
 from fs.errors import CreateFailed
 from fs_s3fs import S3FS
-# import sultan
+from webdavfs.webdavfs import WebDAVFS
 
 from lp_backup import file_io
 from lp_backup import exceptions
@@ -93,12 +89,12 @@ class Runner(object):
         if self.config.get("Compression", False):
             backup_data = lzma.compress(backup_data)
             file_suffix += ".xz"
-        # with open("/tmp/testbackup.csv.encrypted.xz", 'wb') as test_file:
-        #     test_file.write(backup_data)
+        outfs = None
+        prefix = None
         try:
             outfs = self._configure_backing_store()
-            prefix = self.config['Backing Store'].get('Prefix', '')
-            if self.config['Backing Store'].get('Date', False):
+            prefix = self.config.get('Prefix', '')
+            if self.config.get('Date', False):
                 date = datetime.datetime.today().isoformat() + "-"
             else:
                 date = ""
@@ -124,7 +120,7 @@ class Runner(object):
         """
         try:
             restorefs = self._configure_backing_store()
-            prefix = self.config["Backing Store"].get("Prefix", "")
+            prefix = self.config.get("Prefix", "")
         except KeyError as err:
             _config_error(err)
         restored_data = file_io.read_backup(restorefs, infilename, prefix)
@@ -137,30 +133,41 @@ class Runner(object):
 
     def _configure_backing_store(self):
         try:
-            bs = self.config['Backing Store']
-            if 'Type' in bs:
-                for key, item in bs.items():
-                    bs[key] = _get_from_env(item)
-                if bs['Type'].lower() == 's3':
-                    return S3FS(
-                        bs['Bucket'],
-                        strict=False,
-                        aws_access_key_id=bs.get('Key ID', None),
-                        aws_secret_access_key=bs.get('Secret Key', None),
-                        endpoint_url=bs.get('Endpoint URL', None)
-                    )
-                # elif 'dav' in bs['Type'].lower():
-
-            else:
-                return fs.open_fs(bs['URI'], create=True)
+            backing_stores = []
+            for bs in self.config['Backing Store']:
+                if 'Type' in bs:
+                    for key, item in bs.items():
+                        bs[key] = _get_from_env(item)
+                    if bs['Type'].lower() == 's3':
+                        backing_stores.append(S3FS(
+                            bs['Bucket'],
+                            strict=False,
+                            aws_access_key_id=bs.get('Key ID', None),
+                            aws_secret_access_key=bs.get('Secret Key', None),
+                            endpoint_url=bs.get('Endpoint URL', None)
+                        ))
+                    elif 'dav' in bs['Type'].lower():
+                        if bs['Root'][0] != '/':
+                            bs['Root'] = '/' + bs['Root']
+                        backing_stores.append(WebDAVFS(
+                            url=bs['Base URL'],
+                            login=bs['Username'],
+                            password=bs['Password'],
+                            root=bs['Root']
+                        ))
+                    else:
+                        _config_error("Unknown filesystem type.")
+                else:
+                    backing_stores.append(fs.open_fs(bs['URI'], create=True))
         except (KeyError, OSError, CreateFailed) as err:
             _config_error(err)
+        return backing_stores
 
 
 def _config_error(err=''):
     raise exceptions.ConfigurationError(
         "Options are missing in the configuration file. "
-        f"Please consult the docs at https://lastpass-local-backup.readthedocs.io\n"
+        f"Pleaseconsult the docs at https://lastpass-local-backup.readthedocs.io\n"
         f"{err}")
 
 

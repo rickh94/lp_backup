@@ -35,6 +35,14 @@ def tmp_config_file_three(tmpdir):
 
 
 @pytest.fixture
+def tmp_config_file_four(tmpdir):
+    test_config_file = Path(DATA, "testconfig-4.yml")
+    shutil.copy2(test_config_file, tmpdir)
+    temp_config_file = Path(tmpdir, "testconfig-4.yml")
+    return temp_config_file
+
+
+@pytest.fixture
 def mock_fernet():
     mock_fern = mock.MagicMock()
     mock_fern.encrypt = mock.MagicMock()
@@ -46,6 +54,7 @@ def mock_fernet():
 def mock_lzma():
     mock_lz = mock.MagicMock()
     mock_lz.compress = mock.MagicMock()
+    # mock_lz.compress.return_value = b"some random data that we can look for later"
     return mock_lz
 
 
@@ -66,5 +75,12 @@ def test_runner_two(tmp_config_file_two, monkeypatch):
 @pytest.fixture
 def test_runner_three(tmp_config_file_three, monkeypatch):
     new_runner = Runner(tmp_config_file_three)
+    monkeypatch.setattr(new_runner, 'logged_in', True)
+    return new_runner
+
+
+@pytest.fixture
+def test_runner_four(tmp_config_file_four, monkeypatch):
+    new_runner = Runner(tmp_config_file_four)
     monkeypatch.setattr(new_runner, 'logged_in', True)
     return new_runner
