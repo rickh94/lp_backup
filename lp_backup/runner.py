@@ -8,7 +8,15 @@ from cryptography.fernet import Fernet
 import fs
 from fs.errors import CreateFailed
 from fs_s3fs import S3FS
-from webdavfs.webdavfs import WebDAVFS
+
+webdav_available = False
+try:
+    from webdavfs.webdavfs import WebDAVFS
+    webdav_available = True
+except ModuleNotFoundError:
+    webdav_available = False
+
+
 
 from lp_backup import file_io
 from lp_backup import exceptions
@@ -147,6 +155,8 @@ class Runner(object):
                             endpoint_url=bs.get('Endpoint URL', None)
                         ))
                     elif 'dav' in bs['Type'].lower():
+                        if not webdav_available:
+                            raise exceptions.NoWebdav("no webdavfs module was found")
                         if bs['Root'][0] != '/':
                             bs['Root'] = '/' + bs['Root']
                         backing_stores.append(WebDAVFS(

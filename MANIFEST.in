@@ -1,3 +1,4 @@
 include README.md
 include sample-config.yml
 include run-example.py
+include Pipfile

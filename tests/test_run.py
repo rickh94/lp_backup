@@ -11,7 +11,14 @@ from unittest import mock
 
 import fs
 from fs import tempfs
-from webdavfs.webdavfs import WebDAVFS
+
+webdav_available = False
+try:
+    from webdavfs.webdavfs import WebDAVFS
+    webdav_available = True
+except ModuleNotFoundError:
+    pass
+
 import fs_s3fs
 
 from lp_backup import exceptions
@@ -76,8 +83,8 @@ def test_configure_encryption(test_runner_one, test_runner_two, test_runner_thre
     assert test_runner_two.fernet is None
     assert isinstance(test_runner_three.fernet, Fernet)
     assert isinstance(test_runner_four.fernet, Fernet)
-#
-#
+
+
 @pytest.fixture
 def mock_run():
     run = mock.MagicMock()
@@ -218,10 +225,7 @@ def test_backup(test_runner_one, test_runner_two, test_runner_three, mock_run_ba
             assert random_data() in backupfile.read()
 
 
-
-
 @mock.patch('lzma.decompress')
-# @mock.patch('lp_backup.file_io.read_backup')
 def test_restore(mock_lzma, test_runner_one, test_runner_two, test_runner_three, monkeypatch):
     mock_fernet = mock.MagicMock()
     for runner in [test_runner_three, test_runner_two, test_runner_one]:
@@ -289,15 +293,21 @@ def test_configure_backing_store(test_runner_one, test_runner_two, monkeypatch, 
         assert testfs3.strict is False
         testfs3.close()
 
-    with monkeypatch.context() as m:
-        m.setenv('WEBDAV_PASSWORD', 'testpassword')
-        testfs4 = test_runner_four._configure_backing_store()[0]
-        assert isinstance(testfs4, WebDAVFS)
-        assert testfs4.url == 'https://mynextcloud.com'
-        assert testfs4.root == '/remote.php/webdav'
-        assert testfs4.client.webdav.login == 'john'
-        assert testfs4.client.webdav.password == 'testpassword'
-        testfs4.close()
+    if webdav_available:
+        with monkeypatch.context() as m:
+            m.setenv('WEBDAV_PASSWORD', 'testpassword')
+            testfs4 = test_runner_four._configure_backing_store()[0]
+            assert isinstance(testfs4, WebDAVFS)
+            assert testfs4.url == 'https://mynextcloud.com'
+            assert testfs4.root == '/remote.php/webdav'
+            assert testfs4.client.webdav.login == 'john'
+            assert testfs4.client.webdav.password == 'testpassword'
+            testfs4.close()
+    else:
+        with pytest.raises(exceptions.NoWebdav):
+            m.setenv('WEBDAV_PASSWORD', 'testpassword')
+            testfs4 = test_runner_four._configure_backing_store()
+
 
     with monkeypatch.context() as m:
         m.setattr(fs, 'open_fs', raise_oserror)

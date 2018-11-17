@@ -12,3 +12,6 @@ class InvalidKey(Exception):
 
 class BackupFailed(Exception):
     pass
+
+class NoWebdav(Exception):
+    pass
