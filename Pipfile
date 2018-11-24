@@ -9,6 +9,7 @@ cryptography = "*"
 fs = "*"
 "fs-s3fs" = "*"
 fs-webdavfs = {file = "https://github.com/damndam/webdavfs/tarball/master"}
+click = "*"
 
 [dev-packages]
 ptpython = "*"

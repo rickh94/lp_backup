@@ -3,6 +3,18 @@
 
 ## Creating Backups
 
+### From the Console
+
+The default configuration location is ``$HOME/.config/lp_backup.yml``
+If you save it somewhere else, you can specify with ``-c``
+
+
+```bash
+$ lp-backup backup
+```
+
+### With a Script
+
 Create a simple python script, for instance `backup.py` with the contents:
 
 ```python
@@ -17,6 +29,17 @@ Create a simple python script, for instance `backup.py` with the contents:
 
 This will create a plain text csv file that you can import into lastpass or another
 password manager.
+
+### From the Console
+
+As with backups, you can specify alternate configuration files with ``-c``
+
+```bash
+$ lp-backup restore
+```
+
+
+### With a Script
 
 ```python
 from lp_backup import Runner

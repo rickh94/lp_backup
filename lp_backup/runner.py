@@ -134,6 +134,7 @@ class Runner(object):
             restored_data = self.fernet.decrypt(restored_data)
         with self.filesystem.open(str(new_file), 'w') as the_new_file:
             the_new_file.write(restored_data.decode('utf-8'))
+        return new_file
 
     def _configure_backing_store(self):
         try:

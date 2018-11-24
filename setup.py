@@ -2,7 +2,7 @@ from os import path
 from setuptools import setup, find_packages
 
 HERE = path.abspath(path.dirname(__file__))
-VERS = '0.1.8'
+VERS = '0.1.8a0'
 DESC = 'Script to create local backups from Lastpass'
 
 with open(path.join(HERE, 'README.md'), 'r') as f:
@@ -27,12 +27,19 @@ setup(
 
     install_requires=[
         'boto3',
-        'fs==2.1.2',
-        'fs.s3fs',
+        'fs',
+        'fs_s3fs',
         'ruamel.yaml',
         'cryptography',
+        'click'
     ],
     tests_require=['pytest', 'pytest-cov', 'freezegun'],
+    entry_points={
+        'console_scripts': [
+            'lp-backup=lp_backup.interface:cli'
+
+        ],
+    },
     # setup_requires=['pytest-runner'],
 
 )
