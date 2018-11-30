@@ -11,13 +11,15 @@ matrix:
 
 before_install:
   - pip install pipenv
+  - pip install poetry
   - pip install codecov
-  - pipenv install --dev
+#  - pipenv install --dev
+  -  pip install https://github.com/damndam/webdavfs/tarball/master
 #  - pip install pytest-cov
 #  - pip install pytest
 #  - pip install -r requirements.txt
 install:
-  - pip install -e .
+  - poetry install
 
 script: pipenv run pytest
 
