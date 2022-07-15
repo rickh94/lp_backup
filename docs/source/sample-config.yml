@@ -47,3 +47,4 @@ Backing Store:
   - Type: S3
     Bucket: mybackupbucket
   - URI: /home/jsmith/Documents/lastpass_backups
+#Hi Rickh94, How do I hardcode the master password and avoid the script from prompting it? sorry, I can't find a way to reach you.
